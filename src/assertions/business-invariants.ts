@@ -8,8 +8,8 @@ export async function runBusinessInvariants(options: {
   checks: CheckResult[];
 }): Promise<void> {
   const classHashAt = await rawRpcCall<string>(options.rpcUrl, "starknet_getClassHashAt", [
-    { block_id: "latest" },
-    { contract_address: options.artifacts.coreAddress },
+    "latest",
+    options.artifacts.coreAddress,
   ]);
 
   if (!("result" in classHashAt)) {
@@ -36,13 +36,11 @@ export async function runBusinessInvariants(options: {
 
   const events = await rawRpcCall<any>(options.rpcUrl, "starknet_getEvents", [
     {
-      filter: {
-        from_block: "latest",
-        to_block: "latest",
-        address: options.artifacts.coreAddress,
-        keys: [],
-        chunk_size: 100,
-      },
+      from_block: "latest",
+      to_block: "latest",
+      address: options.artifacts.coreAddress,
+      keys: [],
+      chunk_size: 100,
     },
   ]);
 
@@ -63,11 +61,9 @@ export async function runBusinessInvariants(options: {
   }
 
   const estimateFee = await rawRpcCall<any>(options.rpcUrl, "starknet_estimateFee", [
-    {
-      request: [],
-      simulation_flags: [],
-      block_id: "latest",
-    },
+    [],
+    [],
+    "latest",
   ]);
 
   if (!("result" in estimateFee)) {
