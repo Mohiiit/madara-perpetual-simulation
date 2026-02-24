@@ -1,6 +1,9 @@
 name: Simulation (Perpetual)
 
 on:
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       madara_ref:
