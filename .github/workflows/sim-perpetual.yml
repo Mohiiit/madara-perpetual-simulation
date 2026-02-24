@@ -22,6 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: read
 
     env:
       MADARA_REPO: https://github.com/madara-alliance/madara.git
@@ -98,6 +99,59 @@ jobs:
 
           echo "MADARA_REF=$MADARA_REF" >> "$GITHUB_ENV"
           echo "PERPETUAL_SHA=$PERPETUAL_SHA" >> "$GITHUB_ENV"
+
+      - name: Download latest Madara binary artifact from main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          mkdir -p .cache/madara
+          ARTIFACTS_JSON="$(gh api 'repos/madara-alliance/madara/actions/artifacts?per_page=100')"
+
+          ARTIFACT_ID="$(echo "$ARTIFACTS_JSON" | jq -r '
+            .artifacts
+            | map(select((.name | startswith("madara-binary-")) and (.expired == false) and (.workflow_run.head_branch == "main")))
+            | sort_by(.created_at)
+            | reverse
+            | .[0].id // empty
+          ')"
+
+          ARTIFACT_NAME="$(echo "$ARTIFACTS_JSON" | jq -r '
+            .artifacts
+            | map(select((.name | startswith("madara-binary-")) and (.expired == false) and (.workflow_run.head_branch == "main")))
+            | sort_by(.created_at)
+            | reverse
+            | .[0].name // empty
+          ')"
+
+          ARTIFACT_RUN_ID="$(echo "$ARTIFACTS_JSON" | jq -r '
+            .artifacts
+            | map(select((.name | startswith("madara-binary-")) and (.expired == false) and (.workflow_run.head_branch == "main")))
+            | sort_by(.created_at)
+            | reverse
+            | .[0].workflow_run.id // empty
+          ')"
+
+          if [ -z "$ARTIFACT_ID" ] || [ -z "$ARTIFACT_RUN_ID" ]; then
+            echo "No non-expired madara-binary artifact found for madara main branch." >&2
+            exit 1
+          fi
+
+          echo "Using Madara artifact: $ARTIFACT_NAME (id=$ARTIFACT_ID, run_id=$ARTIFACT_RUN_ID)"
+
+          gh api -H 'Accept: application/vnd.github+json' \
+            "repos/madara-alliance/madara/actions/artifacts/$ARTIFACT_ID/zip" > .cache/madara/madara.zip
+
+          unzip -o .cache/madara/madara.zip -d .cache/madara > /dev/null
+          chmod +x .cache/madara/madara
+
+          MADARA_COMMIT="$(gh api "repos/madara-alliance/madara/actions/runs/$ARTIFACT_RUN_ID" --jq '.head_sha')"
+
+          echo "MADARA_BINARY_PATH=$GITHUB_WORKSPACE/.cache/madara/madara" >> "$GITHUB_ENV"
+          echo "MADARA_COMMIT_OVERRIDE=$MADARA_COMMIT" >> "$GITHUB_ENV"
+          echo "MADARA_ARTIFACT_NAME=$ARTIFACT_NAME" >> "$GITHUB_ENV"
+          echo "MADARA_ARTIFACT_RUN_ID=$ARTIFACT_RUN_ID" >> "$GITHUB_ENV"
 
       - name: Run simulation
         run: npm run simulate

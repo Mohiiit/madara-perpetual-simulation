@@ -3,6 +3,8 @@ import path from "node:path";
 export interface RunConfig {
   madaraRepo: string;
   madaraRef: string;
+  madaraBinaryPath?: string;
+  madaraCommitOverride?: string;
   perpetualRepo: string;
   perpetualSha: string;
   rpcUrl: string;
@@ -56,6 +58,8 @@ export function loadRunConfig(): RunConfig {
   return {
     madaraRepo: process.env.MADARA_REPO ?? "https://github.com/madara-alliance/madara.git",
     madaraRef: process.env.MADARA_REF ?? process.env.MADARA_MAIN_BRANCH ?? "main",
+    madaraBinaryPath: process.env.MADARA_BINARY_PATH,
+    madaraCommitOverride: process.env.MADARA_COMMIT_OVERRIDE,
     perpetualRepo:
       process.env.PERPETUAL_REPO ?? "https://github.com/starkware-libs/starknet-perpetual.git",
     perpetualSha,

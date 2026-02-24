@@ -52,19 +52,6 @@ async function main(): Promise<void> {
     const madaraDir = path.resolve(config.workDir, "madara");
     const perpetualDir = path.resolve(config.workDir, "starknet-perpetual");
 
-    const madaraCheckout = await cloneAtRef({
-      repoUrl: config.madaraRepo,
-      ref: config.madaraRef,
-      destDir: madaraDir,
-    });
-    madaraCommit = madaraCheckout.commit;
-    checks.push({
-      id: "infra.checkout_madara",
-      status: "pass",
-      details: "Checked out Madara repository",
-      evidence: { ref: config.madaraRef, commit: madaraCommit },
-    });
-
     const perpetualCheckout = await cloneAtRef({
       repoUrl: config.perpetualRepo,
       ref: config.perpetualSha,
@@ -78,13 +65,42 @@ async function main(): Promise<void> {
       evidence: { sha: perpetualCheckout.commit },
     });
 
-    const madaraBinary = await buildMadara(madaraDir);
-    checks.push({
-      id: "infra.build_madara",
-      status: "pass",
-      details: "Built Madara binary",
-      evidence: { madaraBinary },
-    });
+    let madaraBinary: string;
+    if (config.madaraBinaryPath) {
+      await fs.access(config.madaraBinaryPath);
+      madaraBinary = config.madaraBinaryPath;
+      madaraCommit = config.madaraCommitOverride ?? "artifact-unknown";
+      checks.push({
+        id: "infra.use_madara_artifact",
+        status: "pass",
+        details: "Using prebuilt Madara binary artifact",
+        evidence: {
+          madaraBinaryPath: madaraBinary,
+          madaraCommit,
+        },
+      });
+    } else {
+      const madaraCheckout = await cloneAtRef({
+        repoUrl: config.madaraRepo,
+        ref: config.madaraRef,
+        destDir: madaraDir,
+      });
+      madaraCommit = madaraCheckout.commit;
+      checks.push({
+        id: "infra.checkout_madara",
+        status: "pass",
+        details: "Checked out Madara repository",
+        evidence: { ref: config.madaraRef, commit: madaraCommit },
+      });
+
+      madaraBinary = await buildMadara(madaraDir);
+      checks.push({
+        id: "infra.build_madara",
+        status: "pass",
+        details: "Built Madara binary",
+        evidence: { madaraBinary },
+      });
+    }
 
     const perpetualReleaseDir = await buildPerpetual(perpetualDir);
     checks.push({
