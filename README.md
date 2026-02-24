@@ -4,7 +4,7 @@ External simulation harness for validating Madara devnet with Starknet Perpetual
 
 ## V1 goals
 
-- Run against **latest Madara main**.
+- Run against **latest Madara main artifact** (no Madara source build in CI).
 - Run against a **pinned Starknet Perpetual SHA**.
 - Execute L2-only simulation scenarios (L1 deferred to V2).
 - Trigger on manual dispatch and daily schedule.
@@ -15,14 +15,13 @@ External simulation harness for validating Madara devnet with Starknet Perpetual
 ```mermaid
 flowchart LR
 A["GitHub Actions (manual/daily)"] --> B["Checkout simulation repo"]
-B --> C["Checkout Madara @ latest main commit"]
-C --> D["Build Madara binary"]
-D --> E["Start Madara devnet"]
-E --> F["Checkout Perpetual @ pinned SHA"]
-F --> G["Build Perpetual artifacts"]
-G --> H["Run TS simulation runner"]
-H --> I["Write JSON/MD report artifacts"]
-I --> J["Post Slack summary webhook"]
+B --> C["Download latest madara-binary artifact from madara/main"]
+C --> D["Start Madara devnet"]
+D --> E["Checkout Perpetual @ pinned SHA"]
+E --> F["Build Perpetual artifacts"]
+F --> G["Run TS simulation runner"]
+G --> H["Write JSON/MD report artifacts"]
+H --> I["Post Slack summary webhook"]
 ```
 
 ## Required GitHub settings
@@ -49,6 +48,7 @@ Optional overrides:
 ```bash
 MADARA_REF=main \
 MADARA_REPO=https://github.com/madara-alliance/madara.git \
+MADARA_BINARY_PATH=/absolute/path/to/madara \
 PERPETUAL_REPO=https://github.com/starkware-libs/starknet-perpetual.git \
 RPC_URL=http://127.0.0.1:9944/rpc/v0_10_0 \
 SIM_TIMEOUT_MS=1200000 \
@@ -60,4 +60,3 @@ npm run simulate
 - Infrastructure checks are strict (clone/build/start/report).
 - Perpetual deploy and runtime flows are implemented as best-effort with detailed check reporting.
 - Trace/fee exact-value baselines are intentionally placeholder/range-based.
-

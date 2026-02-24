@@ -79,6 +79,10 @@ async function main(): Promise<void> {
           madaraCommit,
         },
       });
+    } else if (config.requireMadaraArtifact) {
+      throw new Error(
+        "SIM_REQUIRE_MADARA_ARTIFACT=1 but MADARA_BINARY_PATH is not set. CI must provide a downloaded Madara artifact.",
+      );
     } else {
       const madaraCheckout = await cloneAtRef({
         repoUrl: config.madaraRepo,

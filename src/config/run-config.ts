@@ -5,6 +5,7 @@ export interface RunConfig {
   madaraRef: string;
   madaraBinaryPath?: string;
   madaraCommitOverride?: string;
+  requireMadaraArtifact: boolean;
   perpetualRepo: string;
   perpetualSha: string;
   rpcUrl: string;
@@ -60,6 +61,7 @@ export function loadRunConfig(): RunConfig {
     madaraRef: process.env.MADARA_REF ?? process.env.MADARA_MAIN_BRANCH ?? "main",
     madaraBinaryPath: process.env.MADARA_BINARY_PATH,
     madaraCommitOverride: process.env.MADARA_COMMIT_OVERRIDE,
+    requireMadaraArtifact: process.env.SIM_REQUIRE_MADARA_ARTIFACT === "1",
     perpetualRepo:
       process.env.PERPETUAL_REPO ?? "https://github.com/starkware-libs/starknet-perpetual.git",
     perpetualSha,
