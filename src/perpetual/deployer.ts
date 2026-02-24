@@ -2,28 +2,28 @@ import { Account, CallData, Contract, RpcProvider, ec, hash, legacyDeployer } fr
 import type { CheckResult, DeploymentArtifacts } from "../config/run-config.js";
 import { loadPerpetualArtifact } from "./artifact-loader.js";
 
-const DEVNET_ACCOUNT_1 = {
+export const DEVNET_ACCOUNT_1 = {
   address:
     "0x055be462e718c4166d656d11f89e341115b8bc82389c3762a10eade04fcb225d",
   privateKey:
     "0x077e56c6dc32d40a67f6f7e6625c8dc5e570abe49c0a24e9202e4ae906abcc07",
 };
 
-const DEVNET_ACCOUNT_2 = {
+export const DEVNET_ACCOUNT_2 = {
   address:
     "0x008a1719e7ca19f3d91e8ef50a48fc456575f645497a1d55f30e3781f786afe4",
   privateKey:
     "0x0514977443078cf1e0c36bc88b89ada9a46061a5cf728f40274caea21d76f174",
 };
 
-const DEVNET_ACCOUNT_3 = {
+export const DEVNET_ACCOUNT_3 = {
   address:
     "0x0733a8e2bcced14dcc2608462bd96524fb64eef061689b6d976708efc2c8ddfd",
   privateKey:
     "0x00177100ae65c71074126963e695e17adf5b360146f960378b5cdfd9ed69870b",
 };
 
-const STRK_TOKEN_ADDRESS =
+export const STRK_TOKEN_ADDRESS =
   "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d";
 
 const COMPONENTS = [
@@ -41,6 +41,9 @@ export interface DeployerContext {
   governanceAccount: Account;
   userA: Account;
   userB: Account;
+  governancePrivateKey: string;
+  userAPrivateKey: string;
+  userBPrivateKey: string;
   userAPublicKey: string;
   userBPublicKey: string;
   coreContract: Contract;
@@ -326,6 +329,9 @@ export async function deployPerpetualV1(options: {
     governanceAccount,
     userA,
     userB,
+    governancePrivateKey: DEVNET_ACCOUNT_1.privateKey,
+    userAPrivateKey: DEVNET_ACCOUNT_2.privateKey,
+    userBPrivateKey: DEVNET_ACCOUNT_3.privateKey,
     userAPublicKey,
     userBPublicKey,
     coreContract,

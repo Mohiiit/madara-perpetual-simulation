@@ -1,5 +1,7 @@
 node_modules/
 dist/
 .workdir/
+.cache/
+.baseline/
 reports/*.json
 reports/*.md

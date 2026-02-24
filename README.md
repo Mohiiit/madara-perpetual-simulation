@@ -1,28 +1,41 @@
-# Madara Perpetual Simulation (V1)
+# Izanagi (Madara Perpetual Simulation)
 
-External simulation harness for validating Madara devnet with Starknet Perpetual contracts.
+Izanagi is an external high-traffic simulation harness for Madara devnet + Starknet Perpetual contracts.
 
-## V1 goals
+Fun fact: in Naruto, **Izanagi** is a forbidden jutsu that rewrites reality to match the desired outcome. Madara mastered it. The name fits this harness because it stress-tests node behavior under realistic simulated traffic.
 
-- Run against **latest Madara main artifact** (no Madara source build in CI).
-- Run against a **pinned Starknet Perpetual SHA**.
-- Execute L2-only simulation scenarios (L1 deferred to V2).
-- Trigger on manual dispatch and daily schedule.
-- Publish run summaries to Slack webhook.
+## V2 goals
+
+- Use **Madara binary artifacts** from upstream CI (no Madara build in this repo’s CI).
+- Run a **balanced soak profile** with burst writes, windowed reconciliation, read storms, and trace checks.
+- Validate standard Starknet RPC calls against official OpenRPC schemas.
+- Enforce hard latency/error gates (`p50/p90/p99`) with baseline regression checks.
+- Run **VM on PRs** and **VM + Native on nightly schedule**.
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-A["GitHub Actions (manual/daily)"] --> B["Checkout simulation repo"]
-B --> C["Download latest madara-binary artifact from madara/main"]
-C --> D["Start Madara devnet"]
-D --> E["Checkout Perpetual @ pinned SHA"]
-E --> F["Build Perpetual artifacts"]
-F --> G["Run TS simulation runner"]
-G --> H["Write JSON/MD report artifacts"]
-H --> I["Post Slack summary webhook"]
+A["GitHub Actions (PR/manual/nightly)"] --> B["Resolve backend/profile matrix"]
+B --> C["Download Madara artifact binary"]
+C --> D["Start Madara devnet (VM or Native)"]
+D --> E["Checkout + build Starknet Perpetual @ pinned SHA"]
+E --> F["Run scenario engine (strict + burst)"]
+F --> G["Reconcile receipts in windows"]
+G --> H["Spec conformance + RPC cross-endpoint checks"]
+H --> I["Perf aggregation + SLO gates"]
+I --> J["Write JSON/MD reports + post Slack summary"]
 ```
+
+## Scenario suite (V2)
+
+- `deploy_integrity_strict`
+- `correctness_exact_values`
+- `edge_hot_account_mixed`
+- `write_burst_no_wait`
+- `rpc_cross_endpoint_consistency`
+- `read_storm`
+- `trace_conformance`
 
 ## Required GitHub settings
 
@@ -33,30 +46,29 @@ H --> I["Post Slack summary webhook"]
 
 ### Repository secrets
 
-- `SLACK_WEBHOOK_URL` (required for Slack posting)
+- `SLACK_WEBHOOK_URL`
 
 ## Local run
 
 ```bash
 npm install
 npm run build
-PERPETUAL_PINNED_SHA=<sha> npm run simulate
+PERPETUAL_PINNED_SHA=<sha> SIM_BACKEND=vm npm run simulate
 ```
 
 Optional overrides:
 
 ```bash
 MADARA_REF=main \
-MADARA_REPO=https://github.com/madara-alliance/madara.git \
 MADARA_BINARY_PATH=/absolute/path/to/madara \
-PERPETUAL_REPO=https://github.com/starkware-libs/starknet-perpetual.git \
+SIM_BACKEND=native \
+SIM_PROFILE=balanced_soak \
+SIM_DURATION_OVERRIDE_MS=1800000 \
+SIM_BASELINE_PATH=/absolute/path/to/baseline.json \
+STARKNET_SPEC_TAG=v0.10.0 \
+STARKNET_SPEC_CACHE_DIR=.cache/specs/starknet \
 RPC_URL=http://127.0.0.1:9944/rpc/v0_10_0 \
 SIM_TIMEOUT_MS=1200000 \
+PERPETUAL_SHA=<sha> \
 npm run simulate
 ```
-
-## Current V1 status
-
-- Infrastructure checks are strict (clone/build/start/report).
-- Perpetual deploy and runtime flows are implemented as best-effort with detailed check reporting.
-- Trace/fee exact-value baselines are intentionally placeholder/range-based.

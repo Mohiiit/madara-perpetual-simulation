@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { spawn, type ChildProcess } from "node:child_process";
 import { waitForRpcReady } from "./rpc-client.js";
+import type { ExecutionBackend } from "../config/run-config.js";
 
 export interface MadaraProcessHandle {
   rpcRootUrl: string;
@@ -14,6 +15,7 @@ export async function startMadaraDevnet(options: {
   madaraBinaryPath: string;
   workDir: string;
   timeoutMs: number;
+  backend: ExecutionBackend;
 }): Promise<MadaraProcessHandle> {
   const dbPath = path.resolve(options.workDir, "madara_db");
   const logsDir = path.resolve(options.workDir, "logs");
@@ -41,7 +43,19 @@ export async function startMadaraDevnet(options: {
     "1",
     "--no-l1-sync",
     "--rpc-pre-v0-9-preconfirmed-as-pending",
+    "--analytics-prometheus-endpoint",
+    "--analytics-prometheus-endpoint-port",
+    "9464",
   ];
+
+  if (options.backend === "native") {
+    args.push(
+      "--enable-native-execution",
+      "true",
+      "--native-compilation-mode",
+      "blocking",
+    );
+  }
 
   const child: ChildProcess = spawn(options.madaraBinaryPath, args, {
     cwd: options.workDir,
