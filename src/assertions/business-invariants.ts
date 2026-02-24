@@ -47,7 +47,7 @@ export async function runBusinessInvariants(options: {
   if (!("result" in events)) {
     options.checks.push({
       id: "business_invariants.events_available",
-      status: "warn",
+      status: "fail",
       details: "Could not fetch events for core contract",
       evidence: { error: (events as any).error },
     });
@@ -67,11 +67,17 @@ export async function runBusinessInvariants(options: {
   ]);
 
   if (!("result" in estimateFee)) {
+    const errorCode = (estimateFee as any).error?.code;
+    const isExpectedPlaceholderError = errorCode === -32602;
     options.checks.push({
       id: "business_invariants.estimate_fee_placeholder",
-      status: "warn",
-      details: "Estimate fee placeholder check returned RPC error (expected in V1 for empty requests)",
-      evidence: { error: (estimateFee as any).error },
+      status: isExpectedPlaceholderError ? "pass" : "fail",
+      details: isExpectedPlaceholderError
+        ? "Estimate fee placeholder returned expected invalid params error for empty request."
+        : "Estimate fee placeholder returned unexpected RPC error.",
+      evidence: {
+        error: (estimateFee as any).error,
+      },
     });
   } else {
     options.checks.push({

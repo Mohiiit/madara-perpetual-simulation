@@ -23,7 +23,7 @@ export interface DeploymentArtifacts {
 
 export interface CheckResult {
   id: string;
-  status: "pass" | "fail" | "warn";
+  status: "pass" | "fail";
   details: string;
   evidence?: Record<string, unknown>;
 }

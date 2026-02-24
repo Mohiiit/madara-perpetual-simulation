@@ -1,7 +1,7 @@
 import type { ScenarioReport } from "../config/run-config.js";
 
-function summarizeChecks(report: ScenarioReport): { pass: number; fail: number; warn: number } {
-  const summary = { pass: 0, fail: 0, warn: 0 };
+function summarizeChecks(report: ScenarioReport): { pass: number; fail: number } {
+  const summary = { pass: 0, fail: 0 };
   for (const check of report.checks) {
     summary[check.status] += 1;
   }
@@ -17,7 +17,7 @@ export async function postSlackSummary(options: {
     return "skipped";
   }
 
-  const { pass, fail, warn } = summarizeChecks(options.report);
+  const { pass, fail } = summarizeChecks(options.report);
   const failedChecks = options.report.checks
     .filter((c) => c.status === "fail")
     .slice(0, 5)
@@ -41,7 +41,7 @@ export async function postSlackSummary(options: {
           text:
             `• Madara commit: \`${options.report.madaraCommit}\`\n` +
             `• Perpetual SHA: \`${options.report.perpetualSha}\`\n` +
-            `• Checks: pass=${pass}, fail=${fail}, warn=${warn}\n` +
+            `• Checks: pass=${pass}, fail=${fail}\n` +
             `• Run: ${options.runUrl}`,
         },
       },
