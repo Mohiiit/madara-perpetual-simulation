@@ -1,0 +1,85 @@
+name: Simulation (Perpetual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      madara_ref:
+        description: "Madara ref to test (branch or commit)."
+        required: false
+        default: ""
+      perpetual_sha:
+        description: "Perpetual commit SHA override."
+        required: false
+        default: ""
+  schedule:
+    - cron: "0 2 * * *"
+
+jobs:
+  simulate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    env:
+      MADARA_REPO: https://github.com/madara-alliance/madara.git
+      PERPETUAL_REPO: https://github.com/starkware-libs/starknet-perpetual.git
+      MADARA_MAIN_BRANCH: ${{ vars.MADARA_MAIN_BRANCH }}
+      PERPETUAL_PINNED_SHA: ${{ vars.PERPETUAL_PINNED_SHA }}
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      MADARA_REF_INPUT: ${{ github.event.inputs.madara_ref }}
+      PERPETUAL_SHA_INPUT: ${{ github.event.inputs.perpetual_sha }}
+
+    steps:
+      - name: Checkout simulation repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Scarb
+        uses: software-mansion/setup-scarb@v1
+        with:
+          scarb-version: "2.15.1"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build simulation runner
+        run: npm run build
+
+      - name: Resolve runtime inputs
+        run: |
+          MADARA_REF="${MADARA_REF_INPUT}"
+          if [ -z "$MADARA_REF" ]; then
+            MADARA_REF="${MADARA_MAIN_BRANCH:-main}"
+          fi
+
+          PERPETUAL_SHA="${PERPETUAL_SHA_INPUT}"
+          if [ -z "$PERPETUAL_SHA" ]; then
+            PERPETUAL_SHA="${PERPETUAL_PINNED_SHA}"
+          fi
+
+          if [ -z "$PERPETUAL_SHA" ]; then
+            echo "PERPETUAL_SHA is required. Set vars.PERPETUAL_PINNED_SHA or workflow input perpetual_sha." >&2
+            exit 1
+          fi
+
+          echo "MADARA_REF=$MADARA_REF" >> "$GITHUB_ENV"
+          echo "PERPETUAL_SHA=$PERPETUAL_SHA" >> "$GITHUB_ENV"
+
+      - name: Run simulation
+        run: npm run simulate
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simulation-reports-${{ github.run_id }}
+          path: reports/
+          if-no-files-found: error
