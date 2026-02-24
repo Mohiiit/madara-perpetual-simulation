@@ -1,4 +1,4 @@
-import { Account, CallData, Contract, RpcProvider, ec, hash } from "starknet";
+import { Account, CallData, Contract, RpcProvider, ec, hash, legacyDeployer } from "starknet";
 import type { CheckResult, DeploymentArtifacts } from "../config/run-config.js";
 import { loadPerpetualArtifact } from "./artifact-loader.js";
 
@@ -168,18 +168,21 @@ export async function deployPerpetualV1(options: {
     provider,
     address: DEVNET_ACCOUNT_1.address,
     signer: DEVNET_ACCOUNT_1.privateKey,
+    deployer: legacyDeployer,
   });
 
   const userA = new Account({
     provider,
     address: DEVNET_ACCOUNT_2.address,
     signer: DEVNET_ACCOUNT_2.privateKey,
+    deployer: legacyDeployer,
   });
 
   const userB = new Account({
     provider,
     address: DEVNET_ACCOUNT_3.address,
     signer: DEVNET_ACCOUNT_3.privateKey,
+    deployer: legacyDeployer,
   });
 
   const userAPublicKey = ec.starkCurve.getStarkKey(DEVNET_ACCOUNT_2.privateKey);
