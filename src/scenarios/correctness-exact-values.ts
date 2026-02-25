@@ -56,6 +56,11 @@ export const correctnessExactValuesScenario: SimulationScenario = {
   dispatchMode: "strict",
   async run(ctx) {
     const coreAddress = ctx.deployCtx.artifacts.coreAddress;
+    const chainId = await ctx.rpc.requireResult<string>(
+      "starknet_chainId",
+      [],
+      "read",
+    );
 
     const senderBalanceBefore = await getStrkBalance(
       ctx,
@@ -224,6 +229,7 @@ export const correctnessExactValuesScenario: SimulationScenario = {
       amount: transferAmountInternal,
       expiration: transferExpiration,
       salt: BigInt(USER_A_TRANSFER_SALT),
+      chainId,
     });
 
     await submitStrict(ctx, {
@@ -295,6 +301,7 @@ export const correctnessExactValuesScenario: SimulationScenario = {
       amount: withdrawAmount,
       expiration: withdrawExpiration,
       salt: BigInt(USER_A_WITHDRAW_SALT),
+      chainId,
     });
 
     await submitStrict(ctx, {
@@ -373,12 +380,14 @@ export const correctnessExactValuesScenario: SimulationScenario = {
       privateKey: ctx.deployCtx.userAPrivateKey,
       publicKey: ctx.deployCtx.userAPublicKey,
       order: orderA,
+      chainId,
     });
 
     const signatureB = signTradeOrder({
       privateKey: ctx.deployCtx.userBPrivateKey,
       publicKey: ctx.deployCtx.userBPublicKey,
       order: orderB,
+      chainId,
     });
 
     const beforeTradeA = await getPositionTotalValue(ctx, USER_A_POSITION_ID);

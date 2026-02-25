@@ -51,6 +51,18 @@ function poseidonMany(values: bigint[]): bigint {
   return BigInt(hash.computePoseidonHashOnElements(values));
 }
 
+function resolveChainId(chainId?: string | bigint): bigint {
+  if (typeof chainId === "bigint") {
+    return chainId;
+  }
+
+  if (typeof chainId === "string") {
+    return BigInt(chainId);
+  }
+
+  return BigInt(STARKNET_CHAIN_ID_MAINNET);
+}
+
 export function toFeltFromSigned(value: bigint): bigint {
   return normalizeSignedFelt(value);
 }
@@ -60,16 +72,18 @@ export function signPerpetualMessage(options: {
   publicKey: string;
   argsHashConstant: bigint;
   argsValues: bigint[];
+  chainId?: string | bigint;
 }): PerpetualSignatureType {
   const argsHash = poseidonMany(
     toPoseidonFieldElements([options.argsHashConstant, ...options.argsValues]),
   );
 
+  const chainId = resolveChainId(options.chainId);
   const starknetDomainHash = poseidonMany([
     STARKNET_DOMAIN_HASH,
     BigInt(PERPETUALS_NAME),
     BigInt(PERPETUALS_VERSION),
-    BigInt(STARKNET_CHAIN_ID_MAINNET),
+    chainId,
     REVISION,
   ]);
 
@@ -94,6 +108,7 @@ export function signWithdrawRequest(options: {
   amount: bigint;
   expiration: bigint;
   salt: bigint;
+  chainId?: string | bigint;
 }): PerpetualSignatureType {
   return signPerpetualMessage({
     privateKey: options.privateKey,
@@ -107,6 +122,7 @@ export function signWithdrawRequest(options: {
       options.expiration,
       options.salt,
     ],
+    chainId: options.chainId,
   });
 }
 
@@ -119,6 +135,7 @@ export function signTransferRequest(options: {
   amount: bigint;
   expiration: bigint;
   salt: bigint;
+  chainId?: string | bigint;
 }): PerpetualSignatureType {
   return signPerpetualMessage({
     privateKey: options.privateKey,
@@ -132,6 +149,7 @@ export function signTransferRequest(options: {
       options.expiration,
       options.salt,
     ],
+    chainId: options.chainId,
   });
 }
 
@@ -139,6 +157,7 @@ export function signTradeOrder(options: {
   privateKey: string;
   publicKey: string;
   order: TradeOrderLike;
+  chainId?: string | bigint;
 }): PerpetualSignatureType {
   const order = options.order;
   return signPerpetualMessage({
@@ -156,6 +175,7 @@ export function signTradeOrder(options: {
       order.expiration,
       order.salt,
     ],
+    chainId: options.chainId,
   });
 }
 
