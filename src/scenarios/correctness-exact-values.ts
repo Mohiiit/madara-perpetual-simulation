@@ -29,6 +29,10 @@ import {
   type TradeOrderLike,
 } from "./perpetual-signing.js";
 
+function asSignatureSpan(signature: [string, string]): [number, string, string] {
+  return [2, signature[0], signature[1]];
+}
+
 async function getOperatorNonce(ctx: Parameters<SimulationScenario["run"]>[0]): Promise<bigint> {
   const raw = await (ctx.deployCtx.provider as any).callContract({
     contractAddress: ctx.deployCtx.artifacts.coreAddress,
@@ -229,8 +233,7 @@ export const correctnessExactValuesScenario: SimulationScenario = {
         contractAddress: coreAddress,
         entrypoint: "transfer_request",
         calldata: [
-          transferSig[0],
-          transferSig[1],
+          ...asSignatureSpan(transferSig),
           COLLATERAL_ASSET_ID,
           USER_B_POSITION_ID,
           USER_A_POSITION_ID,
@@ -301,8 +304,7 @@ export const correctnessExactValuesScenario: SimulationScenario = {
         contractAddress: coreAddress,
         entrypoint: "withdraw_request",
         calldata: [
-          withdrawSig[0],
-          withdrawSig[1],
+          ...asSignatureSpan(withdrawSig),
           COLLATERAL_ASSET_ID,
           ctx.deployCtx.userA.address,
           USER_A_POSITION_ID,
@@ -391,10 +393,8 @@ export const correctnessExactValuesScenario: SimulationScenario = {
         entrypoint: "trade",
         calldata: [
           opNonce6,
-          signatureA[0],
-          signatureA[1],
-          signatureB[0],
-          signatureB[1],
+          ...asSignatureSpan(signatureA),
+          ...asSignatureSpan(signatureB),
           orderA.positionId,
           orderA.baseAssetId,
           toFeltFromSigned(orderA.baseAmount),
