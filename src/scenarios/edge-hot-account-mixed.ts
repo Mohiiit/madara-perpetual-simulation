@@ -19,7 +19,7 @@ export const edgeHotAccountMixedScenario: SimulationScenario = {
     const account = ctx.deployCtx.userA;
     const coreAddress = ctx.deployCtx.artifacts.coreAddress;
 
-    let latestNonce = await account.getNonce("pending");
+    let latestNonce = await account.getNonce("latest");
 
     const sendOneCall = {
       contractAddress: STRK_TOKEN_ADDRESS,
@@ -48,7 +48,7 @@ export const edgeHotAccountMixedScenario: SimulationScenario = {
       if (!isNonceError(error)) {
         throw error;
       }
-      latestNonce = await account.getNonce("pending");
+      latestNonce = await account.getNonce("latest");
       firstResult = await ctx.dispatcher.submit({
         account,
         label: "edge_hot_account_mixed.valid_transfer_n_retry",
