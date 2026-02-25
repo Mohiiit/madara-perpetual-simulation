@@ -37,17 +37,14 @@ export const edgeHotAccountMixedScenario: SimulationScenario = {
     };
 
     let firstResult;
-    try {
-      firstResult = await ctx.dispatcher.submit({
-        account,
-        label: "edge_hot_account_mixed.valid_transfer_n",
-        calls: sendOneCall,
-        explicitNonce: latestNonce,
-      });
-    } catch (error) {
-      if (!isNonceError(error)) {
-        throw error;
-      }
+    firstResult = await ctx.dispatcher.submit({
+      account,
+      label: "edge_hot_account_mixed.valid_transfer_n",
+      calls: sendOneCall,
+      explicitNonce: latestNonce,
+    });
+
+    if (firstResult.expectedError && isNonceError(firstResult.expectedError.error)) {
       latestNonce = await account.getNonce("latest");
       firstResult = await ctx.dispatcher.submit({
         account,

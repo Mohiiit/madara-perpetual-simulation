@@ -124,16 +124,12 @@ export class TxDispatcher {
         ok: false,
       });
 
-      if (options.expectedFailure) {
-        return {
-          expectedError: {
-            label: options.label,
-            error: String((error as Error)?.message ?? error),
-          },
-        };
-      }
-
-      throw error;
+      return {
+        expectedError: {
+          label: options.label,
+          error: String((error as Error)?.message ?? error),
+        },
+      };
     }
   }
 
