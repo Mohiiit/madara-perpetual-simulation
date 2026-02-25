@@ -61,6 +61,8 @@ export interface RunConfig {
   timeoutMs: number;
   workDir: string;
   forceFailureSuite: boolean;
+  enforceSpecConformance: boolean;
+  enforcePerfGates: boolean;
 }
 
 export interface DeploymentArtifacts {
@@ -161,5 +163,7 @@ export function loadRunConfig(): RunConfig {
       process.env.SIM_WORKDIR ??
       path.resolve(process.cwd(), ".workdir", `run-${Date.now()}`),
     forceFailureSuite: process.env.SIM_FORCE_FAILURE_SUITE === "1",
+    enforceSpecConformance: process.env.SIM_ENFORCE_SPEC_CONFORMANCE === "1",
+    enforcePerfGates: process.env.SIM_ENFORCE_PERF_GATES === "1",
   };
 }

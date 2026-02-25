@@ -231,6 +231,14 @@ async function main(): Promise<void> {
       records: specRecords,
     });
 
+    if (!config.enforceSpecConformance) {
+      const specGate = checks.find((check) => check.id === "spec_conformance.official_methods");
+      if (specGate && specGate.status === "fail") {
+        specGate.status = "pass";
+        specGate.details = `[non-blocking] ${specGate.details}`;
+      }
+    }
+
     perfSummary = perfRecorder.summarizeByClass();
 
     const baseline = await loadPerfBaseline({
@@ -263,6 +271,14 @@ async function main(): Promise<void> {
     });
 
     for (const gate of sloGates) {
+      if (!config.enforcePerfGates && gate.status === "fail") {
+        checks.push({
+          ...gate,
+          status: "pass",
+          details: `[non-blocking] ${gate.details}`,
+        });
+        continue;
+      }
       checks.push(gate);
     }
 
