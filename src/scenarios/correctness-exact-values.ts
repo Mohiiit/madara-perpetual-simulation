@@ -529,6 +529,15 @@ export const correctnessExactValuesScenario: SimulationScenario = {
     });
 
     const transferAmount = 42n;
+    const senderBalanceBeforeTopUp = await getStrkBalance(
+      ctx,
+      ctx.deployCtx.governanceAccount.address,
+    );
+    const receiverBalanceBeforeTopUp = await getStrkBalance(
+      ctx,
+      ctx.deployCtx.userA.address,
+    );
+
     await submitStrict(ctx, {
       account: ctx.deployCtx.governanceAccount,
       label: "correctness.transfer_strk",
@@ -561,20 +570,20 @@ export const correctnessExactValuesScenario: SimulationScenario = {
       checks: ctx.checks,
       id: "correctness_exact_values.receiver_balance_delta",
       details: "Receiver STRK balance should increase by exact transfer amount",
-      expected: receiverBalanceBefore + transferAmount,
+      expected: receiverBalanceBeforeTopUp + transferAmount,
       actual: receiverBalanceAfter,
     });
 
     ctx.checks.push({
       id: "correctness_exact_values.sender_balance_delta",
       status:
-        senderBalanceAfter <= senderBalanceBefore - transferAmount
+        senderBalanceAfter <= senderBalanceBeforeTopUp - transferAmount
           ? "pass"
           : "fail",
       details:
         "Sender STRK balance should decrease by at least transfer amount (plus fees)",
       evidence: {
-        before: senderBalanceBefore.toString(),
+        before: senderBalanceBeforeTopUp.toString(),
         after: senderBalanceAfter.toString(),
         transferAmount: transferAmount.toString(),
       },

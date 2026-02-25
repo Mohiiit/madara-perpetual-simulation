@@ -47,9 +47,10 @@ export const edgeHotAccountMixedScenario: SimulationScenario = {
       },
       {
         account,
-        label: "edge_hot_account_mixed.valid_approve_n_plus_1",
+        label: "edge_hot_account_mixed.optimistic_approve_n_plus_1",
         calls: approveCall,
         explicitNonce: addHex(latestNonce, 1n),
+        expectedFailure: true,
       },
       {
         account,
