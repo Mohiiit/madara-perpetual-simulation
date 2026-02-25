@@ -7,6 +7,11 @@ function addHex(hexValue: string, increment: bigint): string {
   return `0x${(BigInt(hexValue) + increment).toString(16)}`;
 }
 
+function isNonceError(error: unknown): boolean {
+  const text = String((error as Error)?.message ?? error).toLowerCase();
+  return text.includes("invalid transaction nonce") || text.includes("nonce needs to be");
+}
+
 export const edgeHotAccountMixedScenario: SimulationScenario = {
   id: "edge_hot_account_mixed",
   dispatchMode: "windowed_burst",
@@ -14,7 +19,7 @@ export const edgeHotAccountMixedScenario: SimulationScenario = {
     const account = ctx.deployCtx.userA;
     const coreAddress = ctx.deployCtx.artifacts.coreAddress;
 
-    const latestNonce = await account.getNonce("latest");
+    let latestNonce = await account.getNonce("pending");
 
     const sendOneCall = {
       contractAddress: STRK_TOKEN_ADDRESS,
@@ -31,13 +36,28 @@ export const edgeHotAccountMixedScenario: SimulationScenario = {
       calldata: [coreAddress, 1234, 0],
     };
 
-    const burst = await ctx.dispatcher.submitBurst([
-      {
+    let firstResult;
+    try {
+      firstResult = await ctx.dispatcher.submit({
         account,
         label: "edge_hot_account_mixed.valid_transfer_n",
         calls: sendOneCall,
         explicitNonce: latestNonce,
-      },
+      });
+    } catch (error) {
+      if (!isNonceError(error)) {
+        throw error;
+      }
+      latestNonce = await account.getNonce("pending");
+      firstResult = await ctx.dispatcher.submit({
+        account,
+        label: "edge_hot_account_mixed.valid_transfer_n_retry",
+        calls: sendOneCall,
+        explicitNonce: latestNonce,
+      });
+    }
+
+    const burst = await ctx.dispatcher.submitBurst([
       {
         account,
         label: "edge_hot_account_mixed.duplicate_nonce_transfer",
@@ -61,11 +81,11 @@ export const edgeHotAccountMixedScenario: SimulationScenario = {
       },
     ]);
 
-    const expectedErrors = burst
+    const expectedErrors = [firstResult, ...burst]
       .map((result) => result.expectedError)
       .filter((error): error is NonNullable<typeof error> => Boolean(error));
 
-    const submitted = burst
+    const submitted = [firstResult, ...burst]
       .map((result) => result.submitted)
       .filter((tx): tx is NonNullable<typeof tx> => Boolean(tx));
 
