@@ -1,4 +1,4 @@
-import { CallData, hash } from "starknet";
+import { CallData, ec, hash, shortString, stark } from "starknet";
 import type { SimulationScenario } from "../engine/scenario-runner.js";
 import { STRK_TOKEN_ADDRESS } from "../perpetual/deployer.js";
 import {
@@ -49,6 +49,23 @@ async function getOperatorNonce(ctx: Parameters<SimulationScenario["run"]>[0]): 
 
 function tradeOrderSalt(seed: string): bigint {
   return BigInt(hash.getSelectorFromName(seed)) % 10_000_000n;
+}
+
+function signOraclePrice(options: {
+  privateKey: string;
+  oraclePrice: bigint;
+  timestamp: bigint;
+  assetName: bigint;
+  oracleName: bigint;
+}): [string, string] {
+  const packedAssetOracle = (1n << 40n) * options.assetName + options.oracleName;
+  const packedPriceTimestamp = (1n << 32n) * options.oraclePrice + options.timestamp;
+  const messageHash = hash.computePedersenHash(
+    `0x${packedAssetOracle.toString(16)}`,
+    `0x${packedPriceTimestamp.toString(16)}`,
+  );
+  const signature = ec.starkCurve.sign(messageHash, options.privateKey);
+  return stark.signatureToHexArray(signature) as [string, string];
 }
 
 export const correctnessExactValuesScenario: SimulationScenario = {
@@ -351,6 +368,69 @@ export const correctnessExactValuesScenario: SimulationScenario = {
       actual: posAAfterWithdraw,
     });
 
+    const riskFactorTiers = [100, 200, 400];
+    await submitStrict(ctx, {
+      account: ctx.deployCtx.governanceAccount,
+      label: "correctness.add_synthetic_asset_for_trade",
+      calls: {
+        contractAddress: coreAddress,
+        entrypoint: "add_synthetic_asset",
+        calldata: [
+          TRADE_BASE_ASSET_ID,
+          riskFactorTiers.length,
+          ...riskFactorTiers,
+          100,
+          100,
+          1,
+          100,
+        ],
+      },
+    });
+
+    const oracleName = BigInt(shortString.encodeShortString("ORCL"));
+    const assetName = BigInt(shortString.encodeShortString("GRASS-1"));
+    const oraclePublicKey = ec.starkCurve.getStarkKey(ctx.deployCtx.governancePrivateKey);
+
+    await submitStrict(ctx, {
+      account: ctx.deployCtx.governanceAccount,
+      label: "correctness.add_oracle_for_trade_asset",
+      calls: {
+        contractAddress: coreAddress,
+        entrypoint: "add_oracle_to_asset",
+        calldata: [TRADE_BASE_ASSET_ID, oraclePublicKey, oracleName, assetName],
+      },
+    });
+
+    const oraclePrice = 100_000_000n;
+    const oracleTimestamp = nowInSeconds();
+    const oracleSignature = signOraclePrice({
+      privateKey: ctx.deployCtx.governancePrivateKey,
+      oraclePrice,
+      timestamp: oracleTimestamp,
+      assetName,
+      oracleName,
+    });
+
+    const opNonce6 = await getOperatorNonce(ctx);
+    await submitStrict(ctx, {
+      account: ctx.deployCtx.governanceAccount,
+      label: "correctness.price_tick_trade_asset",
+      calls: {
+        contractAddress: coreAddress,
+        entrypoint: "price_tick",
+        calldata: [
+          opNonce6,
+          TRADE_BASE_ASSET_ID,
+          oraclePrice,
+          1,
+          ...asSignatureSpan(oracleSignature),
+          oraclePublicKey,
+          oracleTimestamp,
+          oraclePrice,
+        ],
+      },
+    });
+
     const tradeExpiration = nowInSeconds() + 1_000_000n;
     const orderA: TradeOrderLike = {
       positionId: BigInt(USER_A_POSITION_ID),
@@ -393,7 +473,7 @@ export const correctnessExactValuesScenario: SimulationScenario = {
     const beforeTradeA = await getPositionTotalValue(ctx, USER_A_POSITION_ID);
     const beforeTradeB = await getPositionTotalValue(ctx, USER_B_POSITION_ID);
 
-    const opNonce6 = await getOperatorNonce(ctx);
+    const opNonce7 = await getOperatorNonce(ctx);
     await submitStrict(ctx, {
       account: ctx.deployCtx.governanceAccount,
       label: "correctness.trade",
@@ -401,7 +481,7 @@ export const correctnessExactValuesScenario: SimulationScenario = {
         contractAddress: coreAddress,
         entrypoint: "trade",
         calldata: [
-          opNonce6,
+          opNonce7,
           ...asSignatureSpan(signatureA),
           ...asSignatureSpan(signatureB),
           orderA.positionId,
