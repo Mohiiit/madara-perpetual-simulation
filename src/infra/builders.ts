@@ -13,12 +13,25 @@ export async function buildMadara(madaraRepoDir: string): Promise<string> {
   );
 
   const cargoTargetDir = process.env.CARGO_TARGET_DIR;
-  const binaryPath = cargoTargetDir
-    ? path.resolve(cargoTargetDir, "release", "madara")
-    : path.resolve(madaraRepoDir, "target", "release", "madara");
+  const candidatePaths = cargoTargetDir
+    ? [path.resolve(cargoTargetDir, "release", "madara")]
+    : [
+        // Default when target is rooted at cloned repo.
+        path.resolve(madaraRepoDir, "target", "release", "madara"),
+        // Default when manifest-path points to nested ./madara workspace.
+        path.resolve(madaraRepoDir, "madara", "target", "release", "madara"),
+      ];
 
-  await fs.access(binaryPath);
-  return binaryPath;
+  for (const candidate of candidatePaths) {
+    try {
+      await fs.access(candidate);
+      return candidate;
+    } catch {
+      // Try next candidate.
+    }
+  }
+
+  throw new Error(`Madara binary not found. Checked: ${candidatePaths.join(", ")}`);
 }
 
 export async function buildPerpetual(perpetualRepoDir: string): Promise<string> {
